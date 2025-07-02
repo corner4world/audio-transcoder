@@ -34,6 +34,11 @@ func FindDecoder(name string) Decoder {
 		}
 
 		newDecoder := reflect.New(t).Interface().(Decoder)
+		// 如果是G711Decoder, 则复制decoderType
+		_, ok := decoder.(*G711Decoder)
+		if ok {
+			newDecoder.(*G711Decoder).decoderType = decoder.(*G711Decoder).decoderType
+		}
 		return newDecoder
 	}
 
@@ -43,4 +48,6 @@ func FindDecoder(name string) Decoder {
 func init() {
 	RegisterDecoder("AAC", &AACDecoder{})
 	RegisterDecoder("OPUS", &OpusDecoder{})
+	RegisterDecoder("PCMA", &G711Decoder{decoderType: PCMA})
+	RegisterDecoder("PCMU", &G711Decoder{decoderType: PCMU})
 }

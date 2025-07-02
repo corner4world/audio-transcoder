@@ -73,8 +73,8 @@ func DecodeAAC(path string) (string, int, int) {
 	return pcmPath, aacDecoder.SampleRate(), aacDecoder.Channels()
 }
 
-func EncodeAAC(path string, sampleRate int, channels int) {
-	file, err := os.ReadFile(path)
+func EncodeAAC(pcmPath string, sampleRate int, channels int) string {
+	file, err := os.ReadFile(pcmPath)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +90,7 @@ func EncodeAAC(path string, sampleRate int, channels int) {
 	defer aacEncoder.Destroy()
 
 	// 创建同名文件, 添加.aac后缀
-	aacFos, err := os.Create(path + ".aac")
+	aacFos, err := os.Create(pcmPath + ".aac")
 	if err != nil {
 		panic(err)
 	}
@@ -108,6 +108,8 @@ func EncodeAAC(path string, sampleRate int, channels int) {
 		})
 		offset += size
 	}
+
+	return pcmPath + ".aac"
 }
 
 func DecodeOpus(path string, sampleRate int, channels int) (*OpusDecoder, *os.File) {
@@ -130,8 +132,8 @@ func DecodeOpus(path string, sampleRate int, channels int) (*OpusDecoder, *os.Fi
 	return opusDecoder.(*OpusDecoder), pcmFos
 }
 
-func EncodeOpus(path string, sampleRate int, channels int, pktCb func([]byte)) {
-	file, err := os.ReadFile(path)
+func EncodeOpus(pcmPath string, sampleRate int, channels int, pktCb func([]byte)) {
+	file, err := os.ReadFile(pcmPath)
 	if err != nil {
 		panic(err)
 	}
@@ -147,7 +149,7 @@ func EncodeOpus(path string, sampleRate int, channels int, pktCb func([]byte)) {
 	defer opusEncoder.Destroy()
 
 	// 创建同名文件, 添加.opus后缀
-	opusFos, err := os.Create(path + ".opus")
+	opusFos, err := os.Create(pcmPath + ".opus")
 	if err != nil {
 		panic(err)
 	}
@@ -169,31 +171,122 @@ func EncodeOpus(path string, sampleRate int, channels int, pktCb func([]byte)) {
 	}
 }
 
+func DecodeG711(g711Path string, codeType string) (string, int, int) {
+	file, err := os.ReadFile(g711Path)
+	if err != nil {
+		panic(err)
+	}
+
+	g711Decoder := FindDecoder(codeType)
+	if g711Decoder == nil {
+		panic("g711 decoder not found")
+	}
+
+	pcm := make([]byte, len(file)*2)
+	n, err := g711Decoder.Decode(file, pcm)
+	if err != nil {
+		panic(err)
+	} else if n != len(file)*2 {
+		panic("g711 decode error")
+	}
+	// 创建同名文件, 添加.pcm后缀
+	pcmPath := g711Path + ".pcm"
+	pcmFos, err := os.Create(pcmPath)
+	if err != nil {
+		panic(err)
+	}
+
+	defer pcmFos.Close()
+	pcmFos.Write(pcm[:n])
+	return pcmPath, g711Decoder.SampleRate(), g711Decoder.Channels()
+}
+
+func EncodeG711(pcmPath string, codeType string) {
+	file, err := os.ReadFile(pcmPath)
+	if err != nil {
+		panic(err)
+	}
+
+	g711Encoder, err := FindEncoder(codeType, 8000, 1)
+	if g711Encoder == nil {
+		panic(err)
+	}
+
+	out, err := os.Create(pcmPath + "." + codeType)
+	if err != nil {
+		panic(err)
+	}
+
+	defer out.Close()
+	_, _ = g711Encoder.Encode(file, func(bytes []byte) {
+		out.Write(bytes)
+	})
+}
+
+func testOpusCodec(pcmPath string, sampleRate int, channels int) {
+	// 重新解码为pcm, 检查opus解码器是否正常
+	opusDecoder, opusPcmFile := DecodeOpus(pcmPath+".opus", sampleRate, channels)
+	defer opusPcmFile.Close()
+	defer opusDecoder.Destroy()
+
+	pcm := make([]byte, 1024*1024)
+	// 编码为opus
+	EncodeOpus(pcmPath, sampleRate, channels, func(bytes []byte) {
+		n, _ := opusDecoder.Decode(bytes, pcm)
+		if n > 0 {
+			opusPcmFile.Write(pcm[:n])
+		}
+	})
+}
+
+// 先解码再重新编码
+func testAACCodec(aacPath string) (pcmPath string, sampleRate int, channels int) {
+	pcmPath, sampleRate, channels = DecodeAAC(aacPath)
+
+	fmt.Println("aac sample rate:", sampleRate)
+	fmt.Println("aac channels:", channels)
+
+	// 重新编码为aac, 检查aac编码器是否正常
+	EncodeAAC(pcmPath, sampleRate, channels)
+	return pcmPath, sampleRate, channels
+}
+
+func testG711Codec(g711Path string, codeType string) (string, int, int) {
+	pcmPath, sampleRate, channels := DecodeG711(g711Path, codeType)
+	// 重新编码为g711, 检查编码器是否正常
+	EncodeG711(pcmPath, codeType)
+	return pcmPath, sampleRate, channels
+}
+
 func TestTranscoder(t *testing.T) {
 	t.Run("aac_transcode", func(t *testing.T) {
 		aacPath := "../source_files/frxx_48000_2.aac"
 		//aacPath := "../source_files/wwzjdy_44100_2.aac"
-		pcmPath, sampleRate, channels := DecodeAAC(aacPath)
+		pcmPath, sampleRate, channels := testAACCodec(aacPath)
+		testOpusCodec(pcmPath, sampleRate, channels)
+	})
 
-		fmt.Println("aac sample rate:", sampleRate)
-		fmt.Println("aac channels:", channels)
+	t.Run("g711u_transcode", func(t *testing.T) {
+		g711aPath := "../source_files/u.g711"
+		pcmPath, sampleRate, channels := testG711Codec(g711aPath, "PCMU")
 
-		// 重新编码为aac, 检查aac编码器是否正常
-		EncodeAAC(pcmPath, sampleRate, channels)
+		// 测试aac编解码器, 先编码再重新解码
+		aacPath := EncodeAAC(pcmPath, sampleRate, channels)
+		DecodeAAC(aacPath)
 
-		// 重新解码为pcm, 检查opus解码器是否正常
-		opusDecoder, opusPcmFile := DecodeOpus(pcmPath+".opus", sampleRate, channels)
-		defer opusPcmFile.Close()
-		defer opusDecoder.Destroy()
+		// 测试opus编解码器
+		testOpusCodec(pcmPath, sampleRate, channels)
+	})
 
-		pcm := make([]byte, 1024*1024)
-		// 编码为opus
-		EncodeOpus(pcmPath, sampleRate, channels, func(bytes []byte) {
-			n, _ := opusDecoder.Decode(bytes, pcm)
-			if n > 0 {
-				opusPcmFile.Write(pcm[:n])
-			}
-		})
+	t.Run("g711a_transcode", func(t *testing.T) {
+		g711aPath := "../source_files/11111.raw"
+		pcmPath, sampleRate, channels := testG711Codec(g711aPath, "PCMA")
 
+		// 测试aac编解码器, 先编码再重新解码
+		aacPath := EncodeAAC(pcmPath, sampleRate, channels)
+		DecodeAAC(aacPath)
+
+		// 测试opus编解码器
+		testOpusCodec(pcmPath, sampleRate, channels)
 	})
 }

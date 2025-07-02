@@ -53,6 +53,11 @@ func FindEncoder(name string, sampleRate, channels int) (Encoder, error) {
 			}
 
 			newDecoder := reflect.New(t).Interface().(Encoder)
+			// 如果是G711Encoder, 则复制encoderType
+			_, ok := encoder.encoder.(*G711Encoder)
+			if ok {
+				newDecoder.(*G711Encoder).encoderType = encoder.encoder.(*G711Encoder).encoderType
+			}
 			return newDecoder, nil
 		}
 	}
@@ -63,4 +68,6 @@ func FindEncoder(name string, sampleRate, channels int) (Encoder, error) {
 func init() {
 	RegisterEncoder("AAC", &AACEncoder{}, []int{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000}, 2)
 	RegisterEncoder("OPUS", &OpusEncoder{}, []int{8000, 12000, 16000, 24000, 48000}, 2)
+	RegisterEncoder("PCMA", &G711Encoder{encoderType: PCMA}, []int{8000}, 2)
+	RegisterEncoder("PCMU", &G711Encoder{encoderType: PCMU}, []int{8000}, 2)
 }
