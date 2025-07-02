@@ -1,3 +1,3 @@
-module github/lkmio/audio-transcoder
+module github.com/lkmio/audio-transcoder
 
 go 1.19
