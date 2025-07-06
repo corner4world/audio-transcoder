@@ -65,7 +65,10 @@ func (e *AACEncoder) ExtraData() []byte {
 }
 
 func (e *AACEncoder) Destroy() {
-	C.aac_encoder_destroy(e.encoder)
+	if e.encoder != nil {
+		C.aac_encoder_destroy(e.encoder)
+		e.encoder = nil
+	}
 }
 
 func (e *AACEncoder) PacketDurationMS() int {

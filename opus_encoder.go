@@ -41,7 +41,10 @@ func (e *OpusEncoder) Encode(pcm []byte, cb func([]byte)) (int, error) {
 }
 
 func (e *OpusEncoder) Destroy() {
-	C.opus_encoder_destroy2(e.enc)
+	if e.enc != nil {
+		C.opus_encoder_destroy2(e.enc)
+		e.enc = nil
+	}
 }
 
 func (e *OpusEncoder) ExtraData() []byte {

@@ -21,7 +21,10 @@ func (d *OpusDecoder) Decode(pkt []byte, pcm []byte) (int, error) {
 }
 
 func (d *OpusDecoder) Destroy() {
-	C.opus_decoder_destroy2(d.dec)
+	if d.dec != nil {
+		C.opus_decoder_destroy2(d.dec)
+		d.dec = nil
+	}
 }
 
 func (d *OpusDecoder) Create(sampleRate, channel int) error {

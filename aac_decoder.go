@@ -44,7 +44,10 @@ func (d *AACDecoder) Create(adts []byte, audioConfig []byte) error {
 }
 
 func (d *AACDecoder) Destroy() {
-	C.aac_decoder_destroy(d.decoder)
+	if d.decoder != nil {
+		C.aac_decoder_destroy(d.decoder)
+		d.decoder = nil
+	}
 }
 
 func (d *AACDecoder) SampleRate() int {
