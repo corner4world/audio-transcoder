@@ -1,3 +1,5 @@
+//go:build (amd64 && windows) || (amd64 && linux)
+
 package audio_transcoder
 
 /*
@@ -8,6 +10,10 @@ import (
 	"fmt"
 	"unsafe"
 )
+
+func init() {
+	RegisterDecoder("OPUS", &OpusDecoder{})
+}
 
 type OpusDecoder struct {
 	dec        unsafe.Pointer

@@ -66,8 +66,6 @@ func FindEncoder(name string, sampleRate, channels int) (Encoder, error) {
 }
 
 func init() {
-	RegisterEncoder("AAC", &AACEncoder{}, []int{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000}, 2)
-	RegisterEncoder("OPUS", &OpusEncoder{}, []int{8000, 12000, 16000, 24000, 48000}, 2)
 	RegisterEncoder("PCMA", &G711Encoder{encoderType: PCMA}, []int{8000}, 2)
 	RegisterEncoder("PCMU", &G711Encoder{encoderType: PCMU}, []int{8000}, 2)
 	RegisterEncoder("G726", &G726Encoder{}, []int{8000}, 1)

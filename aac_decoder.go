@@ -1,4 +1,4 @@
-//go:build amd64
+//go:build (amd64 && windows) || (amd64 && linux)
 
 package audio_transcoder
 
@@ -10,6 +10,10 @@ import (
 	"fmt"
 	"unsafe"
 )
+
+func init() {
+	RegisterDecoder("AAC", &AACDecoder{})
+}
 
 type AACDecoder struct {
 	decoder unsafe.Pointer

@@ -1,3 +1,5 @@
+//go:build (amd64 && windows) || (amd64 && linux)
+
 package audio_transcoder
 
 /*
@@ -9,6 +11,10 @@ import "fmt"
 const (
 	OpusFrameSize = 960 // 单个声道的样本数
 )
+
+func init() {
+	RegisterEncoder("OPUS", &OpusEncoder{}, []int{8000, 12000, 16000, 24000, 48000}, 2)
+}
 
 type OpusEncoder struct {
 	enc             *C.OpusEncoder

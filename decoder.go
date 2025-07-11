@@ -46,8 +46,6 @@ func FindDecoder(name string) Decoder {
 }
 
 func init() {
-	RegisterDecoder("AAC", &AACDecoder{})
-	RegisterDecoder("OPUS", &OpusDecoder{})
 	RegisterDecoder("PCMA", &G711Decoder{decoderType: PCMA})
 	RegisterDecoder("PCMU", &G711Decoder{decoderType: PCMU})
 	RegisterDecoder("G726", &G726Decoder{})

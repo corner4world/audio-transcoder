@@ -1,3 +1,5 @@
+//go:build (amd64 && windows) || (amd64 && linux)
+
 package audio_transcoder
 
 /*
