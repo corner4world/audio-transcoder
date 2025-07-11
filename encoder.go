@@ -70,4 +70,5 @@ func init() {
 	RegisterEncoder("OPUS", &OpusEncoder{}, []int{8000, 12000, 16000, 24000, 48000}, 2)
 	RegisterEncoder("PCMA", &G711Encoder{encoderType: PCMA}, []int{8000}, 2)
 	RegisterEncoder("PCMU", &G711Encoder{encoderType: PCMU}, []int{8000}, 2)
+	RegisterEncoder("G726", &G726Encoder{}, []int{8000}, 1)
 }

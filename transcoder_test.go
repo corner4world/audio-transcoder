@@ -2,6 +2,7 @@ package audio_transcoder
 
 import (
 	"fmt"
+	"github.com/general252/g726"
 	"os"
 	"testing"
 )
@@ -223,6 +224,64 @@ func EncodeG711(pcmPath string, codeType string) {
 	})
 }
 
+func DecodeG726(g726Path string, rate g726.G726Rate) (string, int, int) {
+	file, err := os.ReadFile(g726Path)
+	if err != nil {
+		panic(err)
+	}
+	g726Decoder := FindDecoder("G726")
+	if g726Decoder == nil {
+		panic("g726 decoder not found")
+	}
+
+	err = g726Decoder.(*G726Decoder).Create(rate)
+	if err != nil {
+		panic(err)
+	}
+	defer g726Decoder.Destroy()
+	pcm := make([]byte, len(file)*8)
+	n, err := g726Decoder.Decode(file, pcm)
+	if err != nil {
+		panic(err)
+	}
+
+	// 创建同名文件, 添加.pcm后缀
+	pcmPath := g726Path + ".pcm"
+	os.WriteFile(pcmPath, pcm[:n], 0644)
+	return pcmPath, g726Decoder.SampleRate(), g726Decoder.Channels()
+}
+
+func EncodeG726(pcmPath string, rate g726.G726Rate) string {
+	file, err := os.ReadFile(pcmPath)
+	if err != nil {
+		panic(err)
+	}
+
+	g726Encoder, err := FindEncoder("G726", 8000, 1)
+	if g726Encoder == nil {
+		panic(err)
+	}
+
+	err = g726Encoder.(*G726Encoder).Create(rate)
+	if err != nil {
+		panic(err)
+	}
+
+	defer g726Encoder.Destroy()
+
+	out, err := os.Create(pcmPath + ".g726")
+	if err != nil {
+		panic(err)
+	}
+
+	defer out.Close()
+	_, _ = g726Encoder.Encode(file, func(bytes []byte) {
+		out.Write(bytes)
+	})
+
+	return pcmPath + ".g726"
+}
+
 func testOpusCodec(pcmPath string, sampleRate int, channels int) {
 	// 重新解码为pcm, 检查opus解码器是否正常
 	opusDecoder, opusPcmFile := DecodeOpus(pcmPath+".opus", sampleRate, channels)
@@ -288,5 +347,12 @@ func TestTranscoder(t *testing.T) {
 
 		// 测试opus编解码器
 		testOpusCodec(pcmPath, sampleRate, channels)
+	})
+
+	t.Run("g726", func(t *testing.T) {
+		g726Path := "../source_files/ps_h264_g726.raw.audio.1.G726"
+		pcmPath, _, _ := DecodeG726(g726Path, g726.G726Rate16kbps)
+		reG726Path := EncodeG726(pcmPath, g726.G726Rate16kbps)
+		_, _, _ = DecodeG726(reG726Path, g726.G726Rate16kbps)
 	})
 }
