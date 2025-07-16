@@ -1,6 +1,6 @@
 package audio_transcoder
 
-import "github.com/general252/g726"
+import "github.com/lkmio/g726"
 
 type G726Encoder struct {
 	state    *g726.G726_state

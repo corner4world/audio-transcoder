@@ -2,7 +2,7 @@ package audio_transcoder
 
 import (
 	"fmt"
-	"github.com/general252/g726"
+	"github.com/lkmio/g726"
 	"os"
 	"testing"
 )
